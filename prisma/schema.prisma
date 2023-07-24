@@ -1,0 +1,92 @@
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String?
+  pubKey    String    @unique
+  avatar    String?
+  createdAt DateTime  @default(now()) @map(name: "created_at")
+  updatedAt DateTime  @updatedAt @map(name: "updated_at")
+  apiKey    String
+  Products  Product[]
+  Webhook   Webhook[]
+}
+
+model PaymentRequest {
+  id                  String   @id @default(uuid())
+  amount              String
+  Orders              Order[]
+  Product             Product  @relation(fields: [productId], references: [id])
+  productId           String
+  affiliateAddress    String?
+  affiliatePercentage String?
+  affiliateShow       Boolean?
+  discountAddress     String?
+  discountPercentage  String?
+  counter             String?
+  expiration          String?
+  redirectUrl         String?
+  requireEmail        Boolean
+  thankYouText        String?
+  name                String   @default(uuid())
+  slug                String   @unique @default(uuid())
+  isActive            Boolean
+  webHook             Webhook? @relation(fields: [webhookId], references: [id])
+  visits              Int      @default(0)
+  webhookId           String?
+}
+
+// amount is in lamports
+model Order {
+  id               String         @id @default(uuid())
+  PaymentRequest   PaymentRequest @relation(fields: [paymentRequestId], references: [id])
+  createdAt        DateTime       @default(now()) @map(name: "created_at")
+  updatedAt        DateTime       @updatedAt @map(name: "updated_at")
+  paymentRequestId String
+  reference        String
+  status           OrderStatus    @default(INITIALIZED)
+  finalAmount      String?
+  discountAmount   String?
+  affiliateAmount  String?
+  serviceFeeAmount String?
+  buyerAddress     String?
+  buyerEmail       String?
+}
+
+model Product {
+  id              String           @id @default(uuid())
+  createdAt       DateTime         @default(now()) @map(name: "created_at")
+  updatedAt       DateTime         @updatedAt @map(name: "updated_at")
+  name            String
+  description     String?
+  image           String?
+  User            User             @relation(fields: [userId], references: [id])
+  PaymentRequests PaymentRequest[]
+  userId          String
+}
+
+model Webhook {
+  id             String           @id @default(uuid())
+  name           String
+  url            String
+  userId         String
+  User           User             @relation(fields: [userId], references: [id])
+  PaymentRequest PaymentRequest[]
+}
+
+enum OrderStatus {
+  INITIALIZED
+  INPROGRESS
+  SUCCESS
+  FAILED
+  INCORRECT
+  TIMEOUT
+}
